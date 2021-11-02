@@ -1,0 +1,230 @@
+---
+title: Logbook What urinary biomarkers in combination with PanRISC are most accurate
+  at predicting pancreatic cancer
+author: "Nils Mooldijk"
+date: "10/12/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading_data, INCLUDE=TRUE}
+#loading in the clean output data from the EDA.
+data <- read.table("data/PDAC_cleaned_data.csv", header = TRUE, sep = ",")
+```
+#Log
+
+
+
+#Weka log
+There was some trouble loading the data into WEKA. This was because a 0.00 value was fed to log(2) which created a '-INF' value. This value isn't numerical which made the data incompatible with WEKA. To solve this, an extra ifelse() check has been added to the code section which log transforms certain values.
+
+```{r, log_example}
+log_example <- data
+#OLD
+log_example[, 3] <- log(log_example[, 3], 2)
+#NEW
+log_example[, 3] <- ifelse(log_example[, 3] != 0, log(log_example[, 3], 2), 0)
+```
+
+In order to get the most accurate model, a lot of algorithms and settings have to be tried out. The algorithm is guessing the diagnosis catagory. From the data, the algorithm needs to figure out what diagnosis a patient should be. Then attributes will be dropped, to figure out which of the markers is the most important and should weighed the heaviest. 
+
+###J48, 10 cross-validation folds:
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         410               69.4915 %
+Incorrectly Classified Instances       180               30.5085 %
+Kappa statistic                          0.5418
+Mean absolute error                      0.2232
+Root mean squared error                  0.4222
+Relative absolute error                 50.2892 %
+Root relative squared error             89.6255 %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,710    0,123    0,722      0,710    0,716      0,590    0,819     0,630     1
+                 0,668    0,162    0,692      0,668    0,680      0,510    0,787     0,651     2
+                 0,709    0,174    0,675      0,709    0,691      0,528    0,799     0,602     3
+Weighted Avg.    0,695    0,154    0,695      0,695    0,695      0,541    0,801     0,628     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 130  29  24 |   a = 1
+  25 139  44 |   b = 2
+  25  33 141 |   c = 3
+  
+  
+###J48, 50 cross-validation folds:
+It looks like increason the folds will also slightly increase the accuracy. But this doesn't happen by a large margin. It looks like J48 can only get the data in it's current form to around 70/30% correct/incorrect instances.
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         415               70.339  %
+Incorrectly Classified Instances       175               29.661  %
+Kappa statistic                          0.5544
+Mean absolute error                      0.2056
+Root mean squared error                  0.4093
+Relative absolute error                 46.3181 %
+Root relative squared error             86.881  %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,710    0,113    0,739      0,710    0,724      0,604    0,838     0,686     1
+                 0,663    0,165    0,687      0,663    0,675      0,503    0,806     0,660     2
+                 0,739    0,169    0,690      0,739    0,714      0,561    0,833     0,668     3
+Weighted Avg.    0,703    0,150    0,704      0,703    0,703      0,554    0,825     0,671     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 130  31  22 |   a = 1
+  26 138  44 |   b = 2
+  20  32 147 |   c = 3
+
+
+###Random Forrest, 20 cross-validation folds.
+Random forrest managed to get a better accuracy than than J48. Let's see if adding some more folds can improve the accuracy.
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         459               77.7966 %
+Incorrectly Classified Instances       131               22.2034 %
+Kappa statistic                          0.6661
+Mean absolute error                      0.2297
+Root mean squared error                  0.3224
+Relative absolute error                 51.756  %
+Root relative squared error             68.4375 %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,781    0,069    0,836      0,781    0,808      0,727    0,950     0,906     1
+                 0,760    0,149    0,735      0,760    0,747      0,606    0,901     0,839     2
+                 0,794    0,118    0,775      0,794    0,784      0,672    0,924     0,861     3
+Weighted Avg.    0,778    0,114    0,780      0,778    0,778      0,666    0,924     0,867     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 143  29  11 |   a = 1
+  15 158  35 |   b = 2
+  13  28 158 |   c = 3
+  
+
+###Random Forrest, 50 cross-validation folds.
+Adding more folds also increases accuracy with the random forrest. However, the computing time was noticablly more. Since the increase is less than 1%, it cannot be called very beneficial however. 
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         464               78.6441 %
+Incorrectly Classified Instances       126               21.3559 %
+Kappa statistic                          0.6791
+Mean absolute error                      0.2259
+Root mean squared error                  0.3177
+Relative absolute error                 50.9036 %
+Root relative squared error             67.428  %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,825    0,071    0,839      0,825    0,832      0,757    0,955     0,915     1
+                 0,764    0,149    0,736      0,764    0,750      0,610    0,907     0,854     2
+                 0,774    0,102    0,794      0,774    0,784      0,676    0,927     0,861     3
+Weighted Avg.    0,786    0,109    0,787      0,786    0,787      0,678    0,928     0,875     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 151  26   6 |   a = 1
+  15 159  34 |   b = 2
+  14  31 154 |   c = 3
+  
+
+###RandomSubSpace, 20 cross-validation folds.
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         442               74.9153 %
+Incorrectly Classified Instances       148               25.0847 %
+Kappa statistic                          0.6231
+Mean absolute error                      0.2911
+Root mean squared error                  0.3543
+Relative absolute error                 65.5912 %
+Root relative squared error             75.1986 %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,770    0,084    0,806      0,770    0,788      0,696    0,923     0,849     1
+                 0,712    0,144    0,729      0,712    0,720      0,571    0,881     0,815     2
+                 0,769    0,151    0,722      0,769    0,745      0,609    0,905     0,835     3
+Weighted Avg.    0,749    0,128    0,750      0,749    0,749      0,622    0,902     0,833     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 141  24  18 |   a = 1
+  19 148  41 |   b = 2
+  15  31 153 |   c = 3
+  
+
+##Experimenting with removing attributes. 
+Through a quick exploration and testing with the available classifiers in WEKA, it was found that no other classifier could beat random forrest. This isn't bad perse, but it does point out that the data, even in it's cleaned up form is difficult to read. In order to remedy this, variables will be excluded from training. It could be that some variables are so close together they confuse the classifier, which is why classifiers with random action seem to do better.
+
+###Removed RG1A, Random Forrest, 20 folds.
+
+As the result of removing REG1A, the classifier's accuracy has gotten worse.
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances         430               72.8814 %
+Incorrectly Classified Instances       160               27.1186 %
+Kappa statistic                          0.592 
+Mean absolute error                      0.2437
+Root mean squared error                  0.342 
+Relative absolute error                 54.9103 %
+Root relative squared error             72.5897 %
+Total Number of Instances              590     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,760    0,076    0,818      0,760    0,788      0,698    0,932     0,873     1
+                 0,721    0,194    0,670      0,721    0,694      0,519    0,876     0,780     2
+                 0,709    0,141    0,719      0,709    0,714      0,570    0,901     0,828     3
+Weighted Avg.    0,729    0,139    0,732      0,729    0,730      0,592    0,902     0,825     
+
+=== Confusion Matrix ===
+
+   a   b   c   <-- classified as
+ 139  31  13 |   a = 1
+  16 150  42 |   b = 2
+  15  43 141 |   c = 3
+
+
+
+##Checking for the weakest link.
+It's more difficult than expected to get results in the range of 95% accuracy. However, the research question is about which marker is the most effective. The markers themselves don't have enough clear variance for an algorithm to predict accurate results using only one marker. Therefore to decide the most important marker, a series of models will be build to determine which is the worst. If the removal of IE LYVE1 causes a noticable and large drop in accuracy, then that marker is more important than another marker whose removal has little effect on the overal accuracy. 
+
+###Plasma:
+Creatinine:
+LYVE1:
+REG1B: 
+TFF1: 
+REG1A: 
